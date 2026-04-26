@@ -18,6 +18,7 @@ const SMALLTALK_DIR: &str = "../sw-cor24-smalltalk";
 /// REPL).
 const DEMOS: &[(&str, &str, Option<&str>)] = &[
     ("repl", "d5_calc.st", Some("d5_calc.bas")),
+    ("hello", "hello.st", None),
     ("add", "d1_add.st", None),
     ("counter", "d2_counter.st", None),
     ("boolean", "d3_boolean.st", None),

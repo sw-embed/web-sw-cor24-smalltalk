@@ -10,7 +10,7 @@ Kay's group built in 1972.
 
 Part of the [Software Wrighter COR24 Tools Project](https://sw-embed.github.io/web-sw-cor24-demos/#/).
 
-![d7_bounded screenshot](images/screenshot-d7-bounded.png)
+![hello screenshot](images/screenshot-hello.png)
 
 ## Intro
 
@@ -56,8 +56,9 @@ Seven demos ship with the build, bundled at compile time from
 
 | Demo | Result | Description |
 | --- | --- | --- |
-| `repl`      | varies  | Interactive integer calc REPL (default). Selectors: `1=+ 2=- 3=* 4=< 14=max:`; `0` quits. |
-| `add`       | `7`     | `3 + 4` via `SmallInteger>>+` (primitive method). |
+| `repl`      | varies        | Interactive integer calc REPL (default). Selectors: `1=+ 2=- 3=* 4=< 14=max:`; `0` quits. |
+| `hello`     | `hello, world`| Smallest possible v1-dialect demo: `Transcript show: 'hello, world'. Transcript cr`. First demo to print real text instead of bare integers. |
+| `add`       | `7`           | `3 + 4` via `SmallInteger>>+` (primitive method). |
 | `counter`   | `2`     | `Counter` class with one instance variable; user-defined `init` / `incr` / `value`; nested user->primitive sends. |
 | `boolean`   | `42`    | `5 < 10 ifTrue: 42 ifFalse: 0` via True/False objects with their own polymorphic `ifTrue:ifFalse:`. No native `IF` makes the choice. |
 | `max`       | `5`     | `5 max: 3` via `SmallInteger>>max:` whose bytecode uses `JUMP_IF_FALSE` for real conditional control flow inside a Smalltalk method. |

@@ -22,6 +22,13 @@ pub static DEMOS: &[Demo] = &[
         interactive: true,
     },
     Demo {
+        name: "hello",
+        description: "Transcript show: 'hello, world' \u{2014} smallest v1-dialect demo (strings)",
+        smalltalk: include_str!("../../sw-cor24-smalltalk/examples/hello.st"),
+        runtime: include_str!(concat!(env!("OUT_DIR"), "/hello.bas")),
+        interactive: false,
+    },
+    Demo {
         name: "add",
         description: "3 + 4 \u{2192} 7 via primitive SmallInteger>>+",
         smalltalk: include_str!("../../sw-cor24-smalltalk/examples/d1_add.st"),

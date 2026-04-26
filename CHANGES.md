@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-04-26 (late evening)
+
+### Demos
+
+- Pick up `hello.st` from the source repo's v1 dialect ship
+  (upstream `e795dab` v1: strings + literal pool + Transcript
+  primitives, closing `sw-cor24-smalltalk#4`). The web demo now
+  prints `hello, world` end-to-end through the WASM stack —
+  first time the live demo emits real text instead of bare
+  integers.
+- Dropdown order is now pedagogical: `repl`, `hello`, `add`,
+  `counter`, `boolean`, `max`, `factorial`, `bounded`.
+- README marquee swapped to `images/screenshot-hello.png`. The
+  `hello` demo is the cleaner first-impression image now that
+  v1 strings work.
+
 ## 2026-04-26 (evening)
 
 ### Build
