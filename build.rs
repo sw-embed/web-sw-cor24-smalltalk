@@ -4,20 +4,26 @@ use std::process::{Command, Stdio};
 
 const SMALLTALK_DIR: &str = "../sw-cor24-smalltalk";
 
-// (out_name, st_filename, driver_filename)
-//
-// `out_name` is the simple display name used by src/demos.rs.
-// `st_filename` is the Smalltalk source we feed through tools/stc.awk
-// to produce the per-demo image. `driver_filename` is the
-// hand-assembled BASIC top-level (still per-demo in the source repo).
-const DEMOS: &[(&str, &str, &str)] = &[
-    ("repl", "d5_calc.st", "d5_calc.bas"),
-    ("add", "d1_add.st", "d1_add.bas"),
-    ("counter", "d2_counter.st", "d2_counter.bas"),
-    ("boolean", "d3_boolean.st", "d3_boolean.bas"),
-    ("max", "d4_max.st", "d4_max.bas"),
-    ("factorial", "d6_fact.st", "d6_fact.bas"),
-    ("bounded", "d7_bounded.st", "d7_bounded.bas"),
+/// (out_name, st_filename, optional .bas driver)
+///
+/// Single-file demos (driver = `None`): the `.st` file has a `main`
+/// block, so `tools/stc.awk` emits a complete program — driver
+/// stub at lines 1..99, image at 100+, main bytecode in DATA. We
+/// just concat with `vm.bas`.
+///
+/// Dual-file demos (driver = `Some(...)`): the `.st` file declares
+/// classes/methods only (no `main`); `stc.awk` emits image only,
+/// and the hand-assembled BASIC driver provides the top-level
+/// loop (currently only `repl`, whose driver is a BASIC `INPUT`
+/// REPL).
+const DEMOS: &[(&str, &str, Option<&str>)] = &[
+    ("repl", "d5_calc.st", Some("d5_calc.bas")),
+    ("add", "d1_add.st", None),
+    ("counter", "d2_counter.st", None),
+    ("boolean", "d3_boolean.st", None),
+    ("max", "d4_max.st", None),
+    ("factorial", "d6_fact.st", None),
+    ("bounded", "d7_bounded.st", None),
 ];
 
 fn main() {
@@ -29,10 +35,6 @@ fn main() {
     std::fs::write(out_path.join("basic.p24"), &basic_p24).unwrap();
     println!("cargo:rerun-if-changed=assets/basic.p24");
 
-    // Compile each .st via the source repo's tools/stc.awk, then
-    // concat (compiled image) + vm.bas + (driver) into OUT_DIR. Strip
-    // trailing RUN/BYE so runner.rs can append the right ones based on
-    // interactive mode.
     let st = Path::new(SMALLTALK_DIR);
     let stc = st.join("tools/stc.awk");
     let vm_path = st.join("src/vm.bas");
@@ -43,27 +45,31 @@ fn main() {
 
     for (out_name, st_file, drv_file) in DEMOS {
         let st_path = st.join("examples").join(st_file);
-        let drv_path = st.join("examples").join(drv_file);
         let st_src = std::fs::read_to_string(&st_path)
             .unwrap_or_else(|e| panic!("read {}: {e}", st_path.display()));
-        let drv = std::fs::read_to_string(&drv_path)
-            .unwrap_or_else(|e| panic!("read {}: {e}", drv_path.display()));
 
         let img = compile_st(&stc, &st_src, st_file);
 
-        let mut bundle = String::with_capacity(img.len() + vm.len() + drv.len() + 4);
+        let mut bundle = String::new();
         bundle.push_str(img.trim_end());
         bundle.push('\n');
         bundle.push_str(vm.trim_end());
         bundle.push('\n');
-        bundle.push_str(&strip_trailing_repl_cmds(&drv));
+
+        if let Some(drv) = drv_file {
+            let drv_path = st.join("examples").join(drv);
+            let drv_src = std::fs::read_to_string(&drv_path)
+                .unwrap_or_else(|e| panic!("read {}: {e}", drv_path.display()));
+            bundle.push_str(&strip_trailing_repl_cmds(&drv_src));
+            println!("cargo:rerun-if-changed={}", drv_path.display());
+        }
+
         if !bundle.ends_with('\n') {
             bundle.push('\n');
         }
 
         std::fs::write(out_path.join(format!("{out_name}.bas")), &bundle).unwrap();
         println!("cargo:rerun-if-changed={}", st_path.display());
-        println!("cargo:rerun-if-changed={}", drv_path.display());
     }
 
     // Build metadata for the footer.
