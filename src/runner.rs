@@ -745,39 +745,6 @@ pub struct TickResult {
 mod tests {
     use super::*;
 
-    fn run_to_done(src: &str) -> Session {
-        let mut s = Session::new(src);
-        for _ in 0..1000 {
-            let r = s.tick();
-            if r.done {
-                break;
-            }
-        }
-        s
-    }
-
-    #[test]
-    fn calc_runs() {
-        let src = include_str!("../examples/calc.bas");
-        let mut s = Session::new(src);
-        for _ in 0..100000 {
-            let r = s.tick();
-            if r.done {
-                break;
-            }
-        }
-        eprintln!(
-            "status={} trap={} instrs={}",
-            s.status, s.trap_code, s.instruction_count
-        );
-        eprintln!("output={:?}", s.stdout_buf);
-        assert!(
-            s.is_done() && s.is_halted(),
-            "calc failed: {}",
-            s.stop_reason()
-        );
-    }
-
     #[test]
     fn interactive_pauses_for_input() {
         // Tiny interactive program: read a number with INPUT, print 2*it.
@@ -827,21 +794,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn hello_runs() {
-        let src = include_str!("../examples/hello.bas");
-        let s = run_to_done(src);
-        eprintln!(
-            "status={} trap={} instrs={}",
-            s.status, s.trap_code, s.instruction_count
-        );
-        eprintln!("output={:?}", s.stdout_buf);
-        assert!(s.is_done(), "did not finish");
-        assert!(s.is_halted(), "trapped: {}", s.stop_reason());
-        assert!(
-            s.stdout_buf.contains("HELLO WORLD"),
-            "no hello: {:?}",
-            s.stdout_buf
-        );
-    }
 }

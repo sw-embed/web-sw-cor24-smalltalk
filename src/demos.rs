@@ -75,3 +75,156 @@ pub static DEMOS: &[Demo] = &[
 pub fn default_demo_index() -> usize {
     DEMOS.iter().position(|d| d.name == "repl").unwrap_or(0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runner::Session;
+
+    fn find(name: &str) -> &'static Demo {
+        DEMOS
+            .iter()
+            .find(|d| d.name == name)
+            .unwrap_or_else(|| panic!("no demo named {name}"))
+    }
+
+    fn run_to_completion(demo: &Demo) -> Session {
+        let mut s = Session::new(demo.runtime);
+        for _ in 0..1_000_000 {
+            if s.tick().done {
+                break;
+            }
+        }
+        s
+    }
+
+    // ---- catalog invariants -------------------------------------------------
+
+    #[test]
+    fn default_is_repl() {
+        assert_eq!(DEMOS[default_demo_index()].name, "repl");
+    }
+
+    #[test]
+    fn names_are_unique() {
+        let mut names: Vec<&str> = DEMOS.iter().map(|d| d.name).collect();
+        names.sort_unstable();
+        let before = names.len();
+        names.dedup();
+        assert_eq!(names.len(), before, "duplicate demo names");
+    }
+
+    #[test]
+    fn only_repl_is_interactive() {
+        for d in DEMOS {
+            let expected = d.name == "repl";
+            assert_eq!(
+                d.interactive, expected,
+                "demo {:?} interactive flag should be {expected}",
+                d.name,
+            );
+        }
+    }
+
+    // ---- end-to-end through the WASM runner --------------------------------
+    //
+    // Catches breakage like the silent dual-driver bug where the live demo
+    // displayed compiler-generated .st but executed the legacy hand-assembly.
+    // Each test runs the bundle the browser actually loads.
+
+    #[test]
+    fn hello_prints_hello_world() {
+        let s = run_to_completion(find("hello"));
+        assert!(s.is_halted(), "hello did not halt: {}", s.stop_reason());
+        assert!(
+            s.output().contains("hello, world"),
+            "hello output missing greeting: {:?}",
+            s.output()
+        );
+    }
+
+    #[test]
+    fn add_prints_7() {
+        let s = run_to_completion(find("add"));
+        assert!(s.is_halted(), "add did not halt: {}", s.stop_reason());
+        assert!(
+            s.output().contains('7'),
+            "add output missing 7: {:?}",
+            s.output()
+        );
+    }
+
+    #[test]
+    fn counter_prints_2() {
+        let s = run_to_completion(find("counter"));
+        assert!(s.is_halted(), "counter did not halt: {}", s.stop_reason());
+        assert!(
+            s.output().contains('2'),
+            "counter output missing 2: {:?}",
+            s.output()
+        );
+    }
+
+    #[test]
+    fn boolean_prints_42() {
+        let s = run_to_completion(find("boolean"));
+        assert!(s.is_halted(), "boolean did not halt: {}", s.stop_reason());
+        assert!(
+            s.output().contains("42"),
+            "boolean output missing 42: {:?}",
+            s.output()
+        );
+    }
+
+    #[test]
+    fn max_prints_5() {
+        let s = run_to_completion(find("max"));
+        assert!(s.is_halted(), "max did not halt: {}", s.stop_reason());
+        assert!(
+            s.output().contains('5'),
+            "max output missing 5: {:?}",
+            s.output()
+        );
+    }
+
+    #[test]
+    fn factorial_prints_120() {
+        let s = run_to_completion(find("factorial"));
+        assert!(s.is_halted(), "factorial did not halt: {}", s.stop_reason());
+        assert!(
+            s.output().contains("120"),
+            "factorial output missing 120: {:?}",
+            s.output()
+        );
+    }
+
+    #[test]
+    fn bounded_prints_5() {
+        let s = run_to_completion(find("bounded"));
+        assert!(s.is_halted(), "bounded did not halt: {}", s.stop_reason());
+        assert!(
+            s.output().contains('5'),
+            "bounded output missing 5: {:?}",
+            s.output()
+        );
+    }
+
+    #[test]
+    fn repl_pauses_for_input() {
+        let d = find("repl");
+        assert!(d.interactive, "repl should be interactive");
+        let mut s = Session::new_interactive(d.runtime);
+        for _ in 0..1_000_000 {
+            let r = s.tick();
+            if r.done || s.is_awaiting_input() {
+                break;
+            }
+        }
+        assert!(
+            s.is_awaiting_input(),
+            "repl did not pause for input: stop={:?} out={:?}",
+            s.stop_reason(),
+            s.output()
+        );
+    }
+}
