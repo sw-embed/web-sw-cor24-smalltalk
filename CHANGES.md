@@ -1,0 +1,60 @@
+# Changelog
+
+## 2026-04-26
+
+### Demos
+
+- All seven demos now run end-to-end through the WASM p-code VM.
+  Previously every demo halted with `?ERR 1 IN 10126` at the
+  `DIM H(511), S(127), O(127)` line in `vm.bas` because the
+  vendored `basic.p24` predated FR-1's "DIM arrays replace
+  PEEK/POKE" refactor in `sw-cor24-smalltalk`.
+
+### Vendoring
+
+- Add `scripts/vendor-artifacts.sh` modeled on
+  `web-sw-cor24-ocaml`'s pattern. Copies `basic.p24` from a
+  sibling repo (`../sw-cor24-basic/build/` preferred, falling
+  back to `../web-sw-cor24-basic/assets/`). `--build` rebuilds
+  the upstream interpreter first.
+- Refresh `assets/basic.p24` (13508 -> 17956 bytes) to the
+  canonical build from `../sw-cor24-basic/build/`. Picks up
+  `DIM` array support that the recent `vm.bas` requires.
+
+### Docs
+
+- Add README modeled on `web-sw-cor24-ocaml`: intro, quickstart,
+  demo table, architecture, build-for-pages, related projects,
+  copyright/license.
+- Add `images/screenshot-d7-bounded.png` captured via playwright
+  on the deployed bundle: `d7_bounded` selected, halted with
+  output `5` after 43.9M instructions.
+
+## 2026-04-25
+
+### Build & deploy
+
+- Initial scaffold: Yew 0.21 frontend + Trunk pipeline + WASM
+  p-code VM (`runner.rs` ported from `web-sw-cor24-basic`).
+- GitHub Pages deploy via `.github/workflows/pages.yml` —
+  upload-pages-artifact + deploy-pages on every push to main.
+- `scripts/serve.sh` (port 9075) and `scripts/build-pages.sh`
+  with exclusive `dist/` lock to prevent races between a running
+  dev server and a stray `trunk build`.
+
+### Demos
+
+- Bundle the seven Smalltalk demos from `../sw-cor24-smalltalk`:
+  `d1_add`, `d2_counter`, `d3_boolean`, `d4_max`, `d5_calc`,
+  `d6_fact`, `d7_bounded`. The last is the first inheritance
+  demo — `BoundedCounter extends Counter`, with `init` and
+  `value` resolving via the superclass walk added to LOOKUP.
+- `build.rs` concatenates per-demo
+  `src/image_dN.bas + src/vm.bas + examples/dN_*.bas` from the
+  sibling source repo on every build, stripping trailing `RUN`
+  and `BYE` so the runner appends them based on the interactive
+  flag.
+- `d5_calc` marked interactive — uses BASIC's `INPUT` flow
+  through `runner::Session::feed_input` for stdin pause/resume.
+  The input row appears below the output panel when the program
+  blocks on `INPUT`.
