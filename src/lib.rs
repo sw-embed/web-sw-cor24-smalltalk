@@ -52,7 +52,7 @@ impl App {
     fn load_demo(&mut self, idx: usize) {
         if let Some(demo) = DEMOS.get(idx) {
             self.selected = idx;
-            self.source = demo.source.to_string();
+            self.source = demo.smalltalk.to_string();
             self.output.clear();
             self.status = "idle".into();
             self.error = false;
@@ -66,14 +66,13 @@ impl App {
     }
 
     fn start_run(&mut self, ctx: &Context<Self>) {
-        let interactive = DEMOS
-            .get(self.selected)
-            .map(|d| d.interactive)
-            .unwrap_or(false);
-        self.session = Some(if interactive {
-            Session::new_interactive(&self.source)
+        let Some(demo) = DEMOS.get(self.selected) else {
+            return;
+        };
+        self.session = Some(if demo.interactive {
+            Session::new_interactive(demo.runtime)
         } else {
-            Session::new(&self.source)
+            Session::new(demo.runtime)
         });
         self.input_line.clear();
         self.awaiting_input = false;
@@ -113,7 +112,7 @@ impl Component for App {
         let demo = &DEMOS[idx];
         Self {
             selected: idx,
-            source: demo.source.to_string(),
+            source: demo.smalltalk.to_string(),
             output: String::new(),
             status: "idle".into(),
             error: false,
@@ -342,7 +341,7 @@ impl Component for App {
                             { for DEMOS.iter().enumerate().map(|(i, d)| html! {
                                 <option value={i.to_string()} selected={i == self.selected}
                                         title={d.description}>
-                                    { format!("{} \u{2014} {}", d.name, d.description) }
+                                    { d.name }
                                 </option>
                             })}
                         </select>
@@ -353,10 +352,11 @@ impl Component for App {
                 </header>
                 <div class="workspace">
                 <section class="panel panel-src">
-                    <label>{ "source (.bas)" }</label>
+                    <label>{ "smalltalk" }</label>
                     <textarea
                         class="src"
                         spellcheck="false"
+                        readonly={true}
                         value={self.source.clone()}
                         oninput={on_src}
                         onkeydown={on_keydown.clone()}

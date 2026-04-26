@@ -56,31 +56,46 @@ Seven demos ship with the build, bundled at compile time from
 
 | Demo | Result | Description |
 | --- | --- | --- |
-| `d1_add`      | `7`     | `3 + 4` via `SmallInteger>>+` (primitive method). |
-| `d2_counter`  | `2`     | `Counter` class with one instance variable; user-defined `init` / `incr` / `value`; nested user->primitive sends. |
-| `d3_boolean`  | `42`    | `5 < 10 ifTrue: 42 ifFalse: 0` via True/False objects with their own polymorphic `ifTrue:ifFalse:`. No native `IF` makes the choice. |
-| `d4_max`      | `5`     | `5 max: 3` via `SmallInteger>>max:` whose bytecode uses `JUMP_IF_FALSE` for real conditional control flow inside a Smalltalk method. |
-| `d5_calc`     | varies  | Interactive integer calc REPL. Selectors: `1=+ 2=- 3=* 4=< 14=max:`; `0` quits. |
-| `d6_fact`     | `120`   | `5 fact` via *recursive* `SmallInteger>>fact`. First proof that the v0 frame stack handles non-trivial nesting. |
-| `d7_bounded`  | `5`     | `BoundedCounter extends Counter`, overriding `incr` to cap at 5; `init` and `value` resolve via the superclass walk. First inheritance demo. |
+| `repl`      | varies  | Interactive integer calc REPL (default). Selectors: `1=+ 2=- 3=* 4=< 14=max:`; `0` quits. |
+| `add`       | `7`     | `3 + 4` via `SmallInteger>>+` (primitive method). |
+| `counter`   | `2`     | `Counter` class with one instance variable; user-defined `init` / `incr` / `value`; nested user->primitive sends. |
+| `boolean`   | `42`    | `5 < 10 ifTrue: 42 ifFalse: 0` via True/False objects with their own polymorphic `ifTrue:ifFalse:`. No native `IF` makes the choice. |
+| `max`       | `5`     | `5 max: 3` via `SmallInteger>>max:` whose bytecode uses `JUMP_IF_FALSE` for real conditional control flow inside a Smalltalk method. |
+| `factorial` | `120`   | `5 fact` via *recursive* `SmallInteger>>fact`. First proof that the v0 frame stack handles non-trivial nesting. |
+| `bounded`   | `5`     | `BoundedCounter extends Counter`, overriding `incr` to cap at 5; `init` and `value` resolve via the superclass walk. First inheritance demo. |
+
+The source pane shows the canonical Smalltalk source (`.st`) for
+each demo. Under the hood, `build.rs` runs `tools/stc.awk` (the
+COR24 Smalltalk compiler in `../sw-cor24-smalltalk/`) to produce
+the per-demo image, which is concatenated with `vm.bas` and the
+hand-assembled top-level driver into the BASIC bundle the WASM
+runner executes. BASIC is implementation substrate, not surfaced
+in the UI.
 
 ## Architecture
 
 - `assets/basic.p24` -- the COR24 BASIC v1 interpreter, compiled
-  Pascal-to-p-code, vendored from `../web-sw-cor24-basic/assets/`.
-- `build.rs` -- for each demo, concatenates
-  `src/image_dN.bas + src/vm.bas + examples/dN_*.bas` from
-  `../sw-cor24-smalltalk/`, strips trailing `RUN`/`BYE` REPL commands,
-  and writes the bundle to `OUT_DIR`. Also embeds `basic.p24` and
-  emits `BUILD_SHA` / `BUILD_HOST` / `BUILD_TIMESTAMP` for the footer.
-- `src/runner.rs` -- ports `pv24t` (the canonical p-code tracer) to
-  Rust/WASM. Loads `basic.p24` into memory, feeds the demo source
-  into the BASIC interpreter as stdin, ticks in 200 K-instruction
+  Pascal-to-p-code, vendored via `scripts/vendor-artifacts.sh`
+  from `../sw-cor24-basic/build/` (or
+  `../web-sw-cor24-basic/assets/` as fallback).
+- `build.rs` -- for each demo, runs `tools/stc.awk` from the
+  source repo to compile `examples/<demo>.st` to its image, then
+  concatenates `image + vm.bas + examples/<demo>.bas` (the
+  hand-assembled top-level driver), stripping trailing `RUN`/`BYE`
+  so `runner.rs` can append the right ones based on the demo's
+  `interactive` flag. Also embeds `basic.p24` and emits
+  `BUILD_SHA` / `BUILD_HOST` / `BUILD_TIMESTAMP` for the footer.
+- `src/runner.rs` -- ports `pv24t` (the canonical p-code tracer)
+  to Rust/WASM. Loads `basic.p24` into memory, feeds the BASIC
+  bundle into the interpreter as stdin, ticks in 200 K-instruction
   batches, pauses at `INPUT` for interactive demos.
-- `src/lib.rs` -- Yew `App`: demo dropdown, source editor, output
-  pane, status bar with a budget escalator, REPL input row, octocat
-  corner, footer with build stamp.
-- `src/demos.rs` -- static catalog (`include_str!` from `OUT_DIR`).
+- `src/lib.rs` -- Yew `App`: demo dropdown, read-only Smalltalk
+  source pane, output pane, status bar with a budget escalator,
+  REPL input row, octocat corner, footer with build stamp.
+- `src/demos.rs` -- static catalog. `smalltalk` field is
+  `include_str!` from
+  `../sw-cor24-smalltalk/examples/<demo>.st`; `runtime` field is
+  `include_str!` from `OUT_DIR` (the compiled BASIC bundle).
 - `scripts/serve.sh` -- dev server on port 9075 with an exclusive
   `dist/` lock (prevents races between a running server and a stray
   `trunk build`).

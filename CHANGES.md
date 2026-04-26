@@ -1,6 +1,30 @@
 # Changelog
 
-## 2026-04-26
+## 2026-04-26 (afternoon)
+
+### UI
+
+- Source pane now shows real Smalltalk (`.st`) source instead of
+  the BASIC bundle. The label changed from `source (.bas)` to
+  `smalltalk`, and the textarea is now read-only — BASIC is the
+  implementation substrate, not user-facing content.
+- Demos renamed to simple names: `repl` (was `d5_calc`,
+  promoted to default), `add`, `counter`, `boolean`, `max`,
+  `factorial`, `bounded`.
+
+### Build
+
+- `build.rs` now invokes `../sw-cor24-smalltalk/tools/stc.awk` to
+  compile each demo's `.st` source into the per-demo image at
+  build time. Replaces the previous flow that read the
+  hand-assembled `src/image_dN.bas` files (those are gone from
+  the source repo as of 58a4e9a "All 7 foundational demos
+  migrated to .st source").
+- `src/demos.rs` loads `.st` source via `include_str!` from
+  `../sw-cor24-smalltalk/examples/`, with the compiled runtime
+  loaded from `OUT_DIR`.
+
+## 2026-04-26 (morning)
 
 ### Demos
 
